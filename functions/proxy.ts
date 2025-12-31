@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://api.apiopen.top/searchMusic";
+const API_BASE_URL = "api.i-meto.com";
 const KUWO_HOST_PATTERN = /(^|\.)kuwo\.cn$/i;
 const SAFE_RESPONSE_HEADERS = ["content-type", "cache-control", "accept-ranges", "content-length", "content-range", "etag", "last-modified", "expires"];
 
