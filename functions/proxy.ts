@@ -1,4 +1,4 @@
-const API_BASE_URL = "api.uomg.com";
+const API_BASE_URL = "https://api.uomg.com/api/rand.music";
 const KUWO_HOST_PATTERN = /(^|\.)kuwo\.cn$/i;
 const SAFE_RESPONSE_HEADERS = ["content-type", "cache-control", "accept-ranges", "content-length", "content-range", "etag", "last-modified", "expires"];
 
@@ -30,29 +30,32 @@ function handleOptions(): Response {
   });
 }
 
-function isAllowedKuwoHost(hostname: string): boolean {
+function isAllowedAudioHost(hostname: string): boolean {
   if (!hostname) return false;
-  return KUWO_HOST_PATTERN.test(hostname);
+  return KUWO_HOST_PATTERN.test(hostname) || hostname.includes("music.126.net") || hostname.includes("qq.com");
 }
 
-function normalizeKuwoUrl(rawUrl: string): URL | null {
+function normalizeAudioUrl(rawUrl: string): URL | null {
   try {
     const parsed = new URL(rawUrl);
-    if (!isAllowedKuwoHost(parsed.hostname)) {
+    if (!isAllowedAudioHost(parsed.hostname)) {
       return null;
     }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return null;
     }
-    parsed.protocol = "http:";
+    // 酷我音乐通常需要 http
+    if (KUWO_HOST_PATTERN.test(parsed.hostname)) {
+        parsed.protocol = "http:";
+    }
     return parsed;
   } catch {
     return null;
   }
 }
 
-async function proxyKuwoAudio(targetUrl: string, request: Request): Promise<Response> {
-  const normalized = normalizeKuwoUrl(targetUrl);
+async function proxyAudio(targetUrl: string, request: Request): Promise<Response> {
+  const normalized = normalizeAudioUrl(targetUrl);
   if (!normalized) {
     return new Response("Invalid target", { status: 400 });
   }
@@ -61,9 +64,12 @@ async function proxyKuwoAudio(targetUrl: string, request: Request): Promise<Resp
     method: request.method,
     headers: {
       "User-Agent": request.headers.get("User-Agent") ?? "Mozilla/5.0",
-      "Referer": "https://www.kuwo.cn/",
     },
   };
+
+  if (KUWO_HOST_PATTERN.test(normalized.hostname)) {
+      (init.headers as Record<string, string>)["Referer"] = "https://www.kuwo.cn/";
+  }
 
   const rangeHeader = request.headers.get("Range");
   if (rangeHeader) {
@@ -128,7 +134,7 @@ export async function onRequest({ request }: { request: Request }): Promise<Resp
   const target = url.searchParams.get("target");
 
   if (target) {
-    return proxyKuwoAudio(target, request);
+    return proxyAudio(target, request);
   }
 
   return proxyApiRequest(url, request);

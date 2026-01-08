@@ -399,7 +399,12 @@ function buildAudioProxyUrl(url) {
             return parsedUrl.toString();
         }
 
-        if (parsedUrl.protocol === "http:" && /(^|\.)kuwo\.cn$/i.test(parsedUrl.hostname)) {
+        const isHttp = parsedUrl.protocol === "http:";
+        const isKuwo = /(^|\.)kuwo\.cn$/i.test(parsedUrl.hostname);
+        const isNetease = parsedUrl.hostname.includes("music.126.net");
+        const isQQ = parsedUrl.hostname.includes("qq.com");
+
+        if (isHttp || isKuwo || isNetease || isQQ) {
             return `${API.baseUrl}?target=${encodeURIComponent(parsedUrl.toString())}`;
         }
 
