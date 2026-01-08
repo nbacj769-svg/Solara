@@ -3665,10 +3665,18 @@ async function playSong(song, options = {}) {
         const audioResponse = await API.fetchJson(audioUrl);
         const audioData = audioResponse.data || audioResponse;
 
-        // Meting API 的 url 类型可能直接返回包含 url 字段的对象，或者直接是 URL 字符串
-        const originalAudioUrl = typeof audioData === 'string' ? audioData : audioData.url;
+        // Meting API 的 url 类型可能返回对象数组、单个对象或字符串
+        let originalAudioUrl = '';
+        if (Array.isArray(audioData) && audioData.length > 0) {
+            originalAudioUrl = audioData[0].url;
+        } else if (typeof audioData === 'object' && audioData !== null) {
+            originalAudioUrl = audioData.url;
+        } else if (typeof audioData === 'string') {
+            originalAudioUrl = audioData;
+        }
 
         if (!originalAudioUrl) {
+            debugLog(`音频响应数据: ${JSON.stringify(audioData)}`);
             throw new Error('无法获取音频播放地址');
         }
         const proxiedAudioUrl = buildAudioProxyUrl(originalAudioUrl);

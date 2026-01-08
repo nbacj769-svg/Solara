@@ -89,31 +89,61 @@ async function proxyAudio(targetUrl: string, request: Request): Promise<Response
   });
 }
 
+async function generateAuth(server: string, type: string, id: string): Promise<string> {
+  const secret = "token"; // Meting API 默认 token
+  const message = `${server}${type}${id}`;
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(message);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyData,
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 async function proxyApiRequest(url: URL, request: Request): Promise<Response> {
   const apiUrl = new URL(API_BASE_URL);
   
-  // 适配 Meting API
   const types = url.searchParams.get("types");
   const name = url.searchParams.get("name");
   const id = url.searchParams.get("id");
   const source = url.searchParams.get("source") || "netease";
   
+  let metingType = "";
+  let metingId = "";
+
   if (types === "search") {
-    apiUrl.searchParams.set("server", source);
-    apiUrl.searchParams.set("type", "search");
-    apiUrl.searchParams.set("id", name || "");
+    metingType = "search";
+    metingId = name || "";
   } else if (types === "url") {
-    apiUrl.searchParams.set("server", source);
-    apiUrl.searchParams.set("type", "url");
-    apiUrl.searchParams.set("id", id || "");
+    metingType = "url";
+    metingId = id || "";
   } else if (types === "lyric") {
-    apiUrl.searchParams.set("server", source);
-    apiUrl.searchParams.set("type", "lrc");
-    apiUrl.searchParams.set("id", id || "");
+    metingType = "lrc";
+    metingId = id || "";
   } else if (types === "pic") {
+    metingType = "pic";
+    metingId = id || "";
+  }
+
+  if (metingType) {
     apiUrl.searchParams.set("server", source);
-    apiUrl.searchParams.set("type", "pic");
-    apiUrl.searchParams.set("id", id || "");
+    apiUrl.searchParams.set("type", metingType);
+    apiUrl.searchParams.set("id", metingId);
+    
+    if (["url", "lrc", "pic"].includes(metingType)) {
+      const auth = await generateAuth(source, metingType, metingId);
+      apiUrl.searchParams.set("auth", auth);
+    }
   }
 
   const upstream = await fetch(apiUrl.toString(), {
@@ -121,6 +151,7 @@ async function proxyApiRequest(url: URL, request: Request): Promise<Response> {
       "User-Agent": request.headers.get("User-Agent") ?? "Mozilla/5.0",
       "Accept": "application/json",
     },
+    redirect: "follow"
   });
 
   const headers = createCorsHeaders(upstream.headers);
