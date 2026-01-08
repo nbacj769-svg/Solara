@@ -532,21 +532,27 @@ const API = {
             const data = await API.fetchJson(url);
             debugLog(`API响应: ${JSON.stringify(data).substring(0, 200)}...`);
 
-            const songs = data.data || data;
-            if (!Array.isArray(songs)) throw new Error("搜索结果格式错误");
+            // 保罗 API 搜索可能返回数组或单个对象
+            let songs = data.data || data;
+            if (!Array.isArray(songs)) {
+                songs = songs ? [songs] : [];
+            }
 
             return songs.map(song => {
-                // Meting API 返回的字段通常是 title 和 author
-                const id = song.id || song.songid;
+                const id = song.id;
                 return {
                     id: id,
-                    name: song.title || song.name || "未知歌曲",
-                    artist: song.author || song.artist || "未知艺术家",
+                    name: song.title || "未知歌曲",
+                    artist: song.artist || "未知艺术家",
                     album: song.album || "",
                     pic_id: id,
                     url_id: id,
                     lyric_id: id,
-                    source: song.source || source,
+                    source: "netease",
+                    // 保罗 API 直接返回了这些信息，我们可以缓存起来
+                    direct_url: song.link,
+                    direct_pic: song.cover,
+                    direct_lrc: song.lyric
                 };
             });
         } catch (error) {
@@ -609,24 +615,15 @@ const API = {
     },
 
     getSongUrl: (song, quality = "320") => {
-        const source = song.source || "netease";
-        let url = `${API.baseUrl}?types=url&id=${song.id}&source=${source}`;
-        if (song.url_auth) url += `&auth=${song.url_auth}`;
-        return url;
+        return `${API.baseUrl}?types=url&id=${song.id}`;
     },
 
     getLyric: (song) => {
-        const source = song.source || "netease";
-        let url = `${API.baseUrl}?types=lyric&id=${song.id}&source=${source}`;
-        if (song.lrc_auth) url += `&auth=${song.lrc_auth}`;
-        return url;
+        return `${API.baseUrl}?types=lyric&id=${song.id}`;
     },
 
     getPicUrl: (song) => {
-        const source = song.source || "netease";
-        let url = `${API.baseUrl}?types=pic&id=${song.id}&source=${source}`;
-        if (song.pic_auth) url += `&auth=${song.pic_auth}`;
-        return url;
+        return `${API.baseUrl}?types=pic&id=${song.id}`;
     }
 };
 

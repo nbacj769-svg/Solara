@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://api.i-meto.com/meting/api";
+const API_BASE_URL = "https://api.paugram.com/netease/";
 const KUWO_HOST_PATTERN = /(^|\.)kuwo\.cn$/i;
 const SAFE_RESPONSE_HEADERS = ["content-type", "cache-control", "accept-ranges", "content-length", "content-range", "etag", "last-modified", "expires"];
 
@@ -146,38 +146,13 @@ async function proxyApiRequest(url: URL, request: Request): Promise<Response> {
   const types = url.searchParams.get("types");
   const name = url.searchParams.get("name");
   const id = url.searchParams.get("id");
-  const source = url.searchParams.get("source") || "netease";
   
-  let metingType = "";
-  let metingId = "";
-
   if (types === "search") {
-    metingType = "search";
-    metingId = name || "";
-  } else if (types === "url") {
-    metingType = "url";
-    metingId = id || url.searchParams.get("id") || "";
-  } else if (types === "lyric") {
-    metingType = "lrc";
-    metingId = id || url.searchParams.get("id") || "";
-  } else if (types === "pic") {
-    metingType = "pic";
-    metingId = id || url.searchParams.get("id") || "";
-  }
-
-  if (metingType) {
-    apiUrl.searchParams.set("server", source);
-    apiUrl.searchParams.set("type", metingType);
-    apiUrl.searchParams.set("id", metingId);
-    
-    // 如果前端已经传了 auth，直接使用
-    const providedAuth = url.searchParams.get("auth");
-    if (providedAuth) {
-      apiUrl.searchParams.set("auth", providedAuth);
-    } else if (["url", "lrc", "pic"].includes(metingType)) {
-      const auth = await generateAuth(source, metingType, metingId);
-      apiUrl.searchParams.set("auth", auth);
-    }
+    // 保罗 API 使用 title 参数进行搜索
+    apiUrl.searchParams.set("title", name || "");
+  } else {
+    // 获取详情、播放链接、歌词等均使用 id 参数
+    apiUrl.searchParams.set("id", id || "");
   }
 
   const upstream = await fetch(apiUrl.toString(), {
