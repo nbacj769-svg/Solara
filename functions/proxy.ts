@@ -126,13 +126,13 @@ async function proxyApiRequest(url: URL, request: Request): Promise<Response> {
     metingId = name || "";
   } else if (types === "url") {
     metingType = "url";
-    metingId = id || "";
+    metingId = id || url.searchParams.get("id") || "";
   } else if (types === "lyric") {
     metingType = "lrc";
-    metingId = id || "";
+    metingId = id || url.searchParams.get("id") || "";
   } else if (types === "pic") {
     metingType = "pic";
-    metingId = id || "";
+    metingId = id || url.searchParams.get("id") || "";
   }
 
   if (metingType) {

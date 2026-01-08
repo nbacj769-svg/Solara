@@ -536,16 +536,20 @@ const API = {
             const songs = data.data || data;
             if (!Array.isArray(songs)) throw new Error("搜索结果格式错误");
 
-            return songs.map(song => ({
-                id: song.id || song.songid,
-                name: song.name || song.title,
-                artist: song.artist || song.author,
-                album: song.album || "",
-                pic_id: song.id || song.songid, // Meting API 通常直接用 ID 获取图片
-                url_id: song.id || song.songid, // Meting API 通常直接用 ID 获取 URL
-                lyric_id: song.id || song.songid, // Meting API 通常直接用 ID 获取歌词
-                source: song.source || source,
-            }));
+            return songs.map(song => {
+                // Meting API 返回的字段通常是 title 和 author
+                const id = song.id || song.songid;
+                return {
+                    id: id,
+                    name: song.title || song.name || "未知歌曲",
+                    artist: song.author || song.artist || "未知艺术家",
+                    album: song.album || "",
+                    pic_id: id,
+                    url_id: id,
+                    lyric_id: id,
+                    source: song.source || source,
+                };
+            });
         } catch (error) {
             debugLog(`API错误: ${error.message}`);
             throw error;
